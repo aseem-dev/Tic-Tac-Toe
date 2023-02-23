@@ -12,8 +12,8 @@
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
-ezButton btnNxt(BTN_NXT);
-ezButton btnSlt(BTN_SLT);
+ezButton btnMove(BTN_NXT);
+ezButton btnSelect(BTN_SLT);
 
 char board[3][3];
 char players[] = {'X', 'O'};
@@ -34,22 +34,25 @@ void initBoard()
   tft.drawFastHLine(4, 116, 120, ST7735_WHITE);
 
   tft.drawRect(9, 41, 31, 31, ST7735_RED);
+
+  tft.setTextColor(ST7735_WHITE);
+  tft.setTextSize(2);
 }
 
-void move()
+char checkWinner()
 {
-  tft.drawRect(9 + (col * 40), 41 + (row * 40), 31, 31, ST7735_BLACK);
-  if (col < 2)
-    col++;
-  else
+  for (int i = 0; i < 3; i++)
   {
-    if (row < 2)
-      row++;
-    else
-      row = 0;
-    col = 0;
+    if (board[0][i] == board[1][i] && board[1][i] == board[2][i] && board[0][i] != '\0')
+      return board[0][i];
+    if (board[i][0] == board[i][1] && board[i][1] == board[i][2] && board[i][0] != '\0')
+      return board[i][0];
   }
-  tft.drawRect(9 + (col * 40), 41 + (row * 40), 31, 31, ST7735_RED);
+  if (board[0][0] == board[1][1] && board[1][1] == board[2][2] && board[0][0] != '\0')
+    return board[0][0];
+  if (board[0][2] == board[1][1] && board[1][1] == board[2][0] && board[0][2] != '\0')
+    return board[0][2];
+  return '\0';
 }
 
 void setup()
@@ -57,28 +60,50 @@ void setup()
   tft.initR(INITR_BLACKTAB);
   tft.fillScreen(ST7735_BLACK);
 
-  btnNxt.setDebounceTime(50);
-  btnSlt.setDebounceTime(50);
+  btnMove.setDebounceTime(50);
+  btnSelect.setDebounceTime(50);
 
   initBoard();
 }
 
 void loop()
 {
-  btnNxt.loop();
-  btnSlt.loop();
+  btnMove.loop();
+  btnSelect.loop();
 
-  if (btnNxt.isReleased())
+  if (btnMove.isPressed())
   {
-    move();
+    tft.drawRect(9 + (col * 40), 41 + (row * 40), 31, 31, ST7735_BLACK);
+    if (col < 2)
+      col++;
+    else
+    {
+      if (row < 2)
+        row++;
+      else
+        row = 0;
+      col = 0;
+    }
+    tft.drawRect(9 + (col * 40), 41 + (row * 40), 31, 31, ST7735_RED);
   }
 
-  if (btnSlt.isPressed())
+  if (btnSelect.isPressed())
   {
-    tft.setCursor((col * 40) + 19, (row * 40) + 50);
-    tft.setTextColor(ST7735_WHITE);
-    tft.setTextSize(2);
-    tft.print(players[player]);
-    player = player == 0 ? 1 : 0;
+    if (!board[row][col])
+    {
+      tft.setCursor((col * 40) + 19, (row * 40) + 50);
+      board[row][col] = players[player];
+      tft.print(players[player]);
+      player = player == 0 ? 1 : 0;
+
+      if (char winner = checkWinner())
+      {
+        tft.fillScreen(ST7735_BLACK);
+        tft.setCursor(10, 50);
+        tft.print("Winner is ");
+        tft.setCursor(60, 70);
+        tft.println(winner);
+      }
+    }
   }
 }
